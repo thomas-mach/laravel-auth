@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProjectRequest;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
@@ -35,13 +37,27 @@ class ProjectController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreProjectRequest $request)
     {
-        $form_data = $request->all();
+        $form_data = $request->validated();
+        $base_slug = Str::slug($form_data['title']);
+        $slug = $base_slug;
+        // dd($form_data, $slug);
+        $n = 0;
 
-        $form_data['slug'] = Str::slug($form_data['title']);
+        do {
+            // SELECT * FROM `posts` WHERE `slug` = ?
+            $find = Project::where('slug', $slug)->first(); // null | Post
+
+            if ($find !== null) {
+                $n++;
+                $slug = $base_slug . '-' . $n;
+            }
+        } while ($find !== null);
+
+        $form_data['slug'] = $slug;
         $new_project = Project::create($form_data);
-        return to_route('admin.projects.show', $new_project);
+        return to_route('admin.projects.index', $new_project);
     }
 
     /**
